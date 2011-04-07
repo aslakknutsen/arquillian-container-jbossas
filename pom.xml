@@ -34,6 +34,10 @@
       <module>jbossas-embedded-6</module>
       <module>jbossas-managed-6</module>
       <module>jbossas-remote-6</module>
+
+      <module>jbossas-common-7</module>
+      <module>jbossas-managed-7</module>
+      <module>jbossas-remote-7</module>
    </modules>
 
 </project>
