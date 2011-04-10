@@ -17,14 +17,12 @@
 package org.jboss.as.arquillian.container;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.logging.Logger;
 
-import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
@@ -42,9 +40,6 @@ import org.jboss.as.controller.client.helpers.standalone.ServerDeploymentActionR
 import org.jboss.as.controller.client.helpers.standalone.ServerDeploymentManager;
 import org.jboss.as.controller.client.helpers.standalone.ServerDeploymentPlanResult;
 import org.jboss.modules.management.ObjectProperties;
-import org.jboss.msc.service.ServiceController.State;
-import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.service.management.ServiceStatus;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.descriptor.api.Descriptor;
@@ -74,17 +69,17 @@ public abstract class AbstractDeployableContainer implements DeployableContainer
 
     private final Map<Object, String> registry = new HashMap<Object, String>();
 
-    //@Override
+    @Override
     public ProtocolDescription getDefaultProtocol() {
         return new ProtocolDescription("Servlet 3.0");
     }
 
-    //@Override
+    @Override
     public Class<JBossAsContainerConfiguration> getConfigurationClass() {
         return JBossAsContainerConfiguration.class;
     }
 
-    //@Override
+    @Override
     public void setup(JBossAsContainerConfiguration configuration) {
         containerConfig = configuration;
         ModelControllerClient client = ModelControllerClient.Factory.create(containerConfig.getBindAddress(),
@@ -93,7 +88,7 @@ public abstract class AbstractDeployableContainer implements DeployableContainer
         deploymentManager = ServerDeploymentManager.Factory.create(client);
     }
 
-    //@Override
+    @Override
     public void deploy(Descriptor descriptor) throws DeploymentException {
         deploy(
                 descriptor.getDescriptorName(),
@@ -101,12 +96,12 @@ public abstract class AbstractDeployableContainer implements DeployableContainer
                 new ByteArrayInputStream(descriptor.exportAsString().getBytes()));
     }
 
-    //@Override
+    @Override
     public void undeploy(Descriptor descriptor) throws DeploymentException {
         undeploy((Object)descriptor);
     }
 
-    //@Override
+    @Override
     public ProtocolMetaData deploy(Archive<?> archive) throws DeploymentException {
         String uniqueDeploymentName = deploy(
                 archive.getName(),
@@ -116,12 +111,10 @@ public abstract class AbstractDeployableContainer implements DeployableContainer
         return getProtocolMetaData(archive, uniqueDeploymentName);
     }
 
-    //@Override
+    @Override
     public void undeploy(Archive<?> archive) throws DeploymentException {
         undeploy((Object)archive);
     }
-
-    protected abstract MBeanServerConnection getMBeanServerConnection();
 
     // TODO: can't be done in a proper way, hack until Management API support Deployment Metadata
     //protected abstract ProtocolMetaData getProtocolMetaData(String uniqueDeploymentName);
@@ -136,6 +129,10 @@ public abstract class AbstractDeployableContainer implements DeployableContainer
         return protocol;
     }
     
+    protected JBossAsContainerConfiguration getContainerConfiguration() {
+        return containerConfig;
+    }
+
     private String getContextRootName(Archive<?> archive)
     {
         String archiveName = archive.getName();
@@ -144,55 +141,6 @@ public abstract class AbstractDeployableContainer implements DeployableContainer
             return archiveName.substring(0, archiveName.indexOf('.'));
         }
         return archiveName;
-    }
-    
-    protected JBossAsContainerConfiguration getContainerConfiguration() {
-        return containerConfig;
-    }
-
-    protected void waitForMBean(ObjectName objectName, long timeout) throws IOException, InterruptedException {
-        boolean mbeanAvailable = false;
-        MBeanServerConnection mbeanServer = null;
-        while (timeout > 0 && mbeanAvailable == false) {
-            if (mbeanServer == null) {
-                try {
-                    mbeanServer = getMBeanServerConnection();
-                } catch (Exception ex) {
-                    // ignore
-                }
-            }
-            mbeanAvailable = (mbeanServer != null && mbeanServer.isRegistered(objectName));
-            Thread.sleep(100);
-            timeout -= 100;
-        }
-        if (mbeanAvailable == false)
-            throw new IllegalStateException("MBean not available: " + objectName);
-    }
-
-    protected void waitForServiceState(ServiceName serviceName, State expectedState, long timeout) throws IOException,
-            InterruptedException {
-
-        ObjectName objectName = OBJECT_NAME;
-
-        State currentState = getCurrentState(serviceName, objectName);
-        while (timeout > 0 && currentState != expectedState) {
-            // TODO: Change this to use mbean notifications
-            Thread.sleep(100);
-            timeout -= 100;
-            currentState = getCurrentState(serviceName, objectName);
-        }
-        if (currentState != expectedState)
-            throw new IllegalStateException("Unexpected state for [" + serviceName + "] - " + currentState);
-    }
-    
-    private State getCurrentState(ServiceName serviceName, ObjectName objectName) {
-        MBeanServerConnection mbeanServer = getMBeanServerConnection();
-        try {
-            return State.valueOf(
-                    ((ServiceStatus)mbeanServer.getAttribute(objectName, "ServiceStatus")).getStateName());
-        } catch (Exception e) {
-            throw new RuntimeException("Could not get ServiceStatus for " + objectName, e);
-        }
     }
 
     private void undeploy(Object deployment) throws DeploymentException {

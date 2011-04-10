@@ -30,11 +30,9 @@ import java.util.logging.Logger;
 import javax.management.MBeanServerConnection;
 
 import org.jboss.arquillian.spi.client.container.LifecycleException;
-import org.jboss.arquillian.spi.client.protocol.metadata.ProtocolMetaData;
 import org.jboss.as.arquillian.container.AbstractDeployableContainer;
 import org.jboss.as.arquillian.container.JBossAsContainerConfiguration;
 import org.jboss.as.arquillian.container.MBeanServerConnectionProvider;
-import org.jboss.shrinkwrap.api.Archive;
 
 /**
  * JBossASEmbeddedContainer
@@ -150,7 +148,7 @@ public class JBossAsManagedContainer extends AbstractDeployableContainer {
         }
     }
 
-    @Override
+//    @Override
     protected MBeanServerConnection getMBeanServerConnection() {
         return provider.getConnection();
     }

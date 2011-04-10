@@ -16,12 +16,9 @@
  */
 package org.jboss.as.arquillian.container.remote;
 
-import javax.management.MBeanServerConnection;
-
 import org.jboss.arquillian.spi.client.container.LifecycleException;
 import org.jboss.as.arquillian.container.AbstractDeployableContainer;
 import org.jboss.as.arquillian.container.JBossAsContainerConfiguration;
-import org.jboss.as.arquillian.container.MBeanServerConnectionProvider;
 
 /**
  * JBossASRemoteContainer
@@ -31,31 +28,18 @@ import org.jboss.as.arquillian.container.MBeanServerConnectionProvider;
  */
 public class JBossAsRemoteContainer extends AbstractDeployableContainer {
 
-    private MBeanServerConnectionProvider provider;
-
     @Override
     public void setup(JBossAsContainerConfiguration configuration) {
         super.setup(configuration);
-        JBossAsContainerConfiguration config = getContainerConfiguration();
-        provider = new MBeanServerConnectionProvider(config.getBindAddress(), config.getJmxPort());
     }
 
-    //@Override
+    @Override
     public void start() throws LifecycleException {
         // nothing to do
     }
 
-    //@Override
+    @Override
     public void stop() throws LifecycleException {
         // nothing to do
     }
-
-    @Override
-    protected MBeanServerConnection getMBeanServerConnection() {
-        return provider.getConnection();
-    }
-
-//    protected ProtocolMetaData getProtocolMetaData(Archive<?> deployment) {
-//        return new ProtocolMetaData();
-//    }
 }

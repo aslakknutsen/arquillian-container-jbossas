@@ -74,11 +74,5 @@
 			<version>${version.org.jboss.jbossas}</version>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.jboss.msc</groupId>
-			<artifactId>jboss-msc</artifactId>
-			<version>${version.org.jboss.msc}</version>
-			<scope>provided</scope>
-		</dependency>
 	</dependencies>
 </project>
