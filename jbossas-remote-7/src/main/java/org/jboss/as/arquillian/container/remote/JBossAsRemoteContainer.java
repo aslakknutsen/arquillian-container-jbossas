@@ -18,7 +18,6 @@ package org.jboss.as.arquillian.container.remote;
 
 import org.jboss.arquillian.spi.client.container.LifecycleException;
 import org.jboss.as.arquillian.container.AbstractDeployableContainer;
-import org.jboss.as.arquillian.container.JBossAsContainerConfiguration;
 
 /**
  * JBossASRemoteContainer
@@ -26,20 +25,26 @@ import org.jboss.as.arquillian.container.JBossAsContainerConfiguration;
  * @author Thomas.Diesler@jboss.com
  * @since 17-Nov-2010
  */
-public class JBossAsRemoteContainer extends AbstractDeployableContainer {
-
+public class JBossAsRemoteContainer extends AbstractDeployableContainer<JBossAsRemoteConfiguration>
+{
+    /* (non-Javadoc)
+     * @see org.jboss.arquillian.spi.client.container.DeployableContainer#getConfigurationClass()
+     */
     @Override
-    public void setup(JBossAsContainerConfiguration configuration) {
-        super.setup(configuration);
+    public Class<JBossAsRemoteConfiguration> getConfigurationClass()
+    {
+        return JBossAsRemoteConfiguration.class;
     }
 
     @Override
-    public void start() throws LifecycleException {
+    public void start() throws LifecycleException
+    {
         // nothing to do
     }
 
     @Override
-    public void stop() throws LifecycleException {
+    public void stop() throws LifecycleException
+    {
         // nothing to do
     }
 }

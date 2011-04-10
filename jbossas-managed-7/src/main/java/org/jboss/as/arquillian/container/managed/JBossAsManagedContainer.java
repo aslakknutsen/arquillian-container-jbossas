@@ -16,13 +16,11 @@
  */
 package org.jboss.as.arquillian.container.managed;
 
-
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -31,7 +29,7 @@ import javax.management.MBeanServerConnection;
 
 import org.jboss.arquillian.spi.client.container.LifecycleException;
 import org.jboss.as.arquillian.container.AbstractDeployableContainer;
-import org.jboss.as.arquillian.container.JBossAsContainerConfiguration;
+import org.jboss.as.arquillian.container.JBossAsCommonConfiguration;
 import org.jboss.as.arquillian.container.MBeanServerConnectionProvider;
 
 /**
@@ -40,38 +38,56 @@ import org.jboss.as.arquillian.container.MBeanServerConnectionProvider;
  * @author Thomas.Diesler@jboss.com
  * @since 17-Nov-2010
  */
-public class JBossAsManagedContainer extends AbstractDeployableContainer {
-
+public class JBossAsManagedContainer extends AbstractDeployableContainer<JBossAsManagedConfiguration>
+{
     private final Logger log = Logger.getLogger(JBossAsManagedContainer.class.getName());
+
     private MBeanServerConnectionProvider provider;
+
     private Process process;
+
     private Thread shutdownThread;
 
     @Override
-    public void setup(JBossAsContainerConfiguration configuration) {
+    public Class<JBossAsManagedConfiguration> getConfigurationClass()
+    {
+        return JBossAsManagedConfiguration.class;
+    }
+
+    @Override
+    public void setup(JBossAsManagedConfiguration configuration)
+    {
         super.setup(configuration);
-        JBossAsContainerConfiguration config = getContainerConfiguration();
+        JBossAsCommonConfiguration config = getContainerConfiguration();
         provider = new MBeanServerConnectionProvider(config.getBindAddress(), config.getJmxPort());
     }
 
-    //@Override
-    public void start() throws LifecycleException {
-        try {
-            String jbossHomeKey = "jboss.home";
-            String jbossHomeDir = System.getProperty(jbossHomeKey);
-            if (jbossHomeDir == null)
-                throw new IllegalStateException("Cannot find system property: " + jbossHomeKey);
-
-            final String additionalJavaOpts = System.getProperty("jboss.options");
+    @Override
+    public void start() throws LifecycleException
+    {
+        try
+        {
+            JBossAsManagedConfiguration config = getContainerConfiguration();
+            final String jbossHomeDir = config.getJbossHome();
+            final String additionalJavaOpts = config.getJavaVmArguments();
 
             File modulesJar = new File(jbossHomeDir + "/jboss-modules.jar");
             if (modulesJar.exists() == false)
                 throw new IllegalStateException("Cannot find: " + modulesJar);
 
             List<String> cmd = new ArrayList<String>();
-            cmd.add("java");
-            if (additionalJavaOpts != null) {
-                for (String opt : additionalJavaOpts.split("\\s+")) {
+            if (config.getJavaHome() != null)
+            {
+                cmd.add(config.getJavaHome() + "/bin/java");
+            }
+            else
+            {
+                cmd.add("java");
+            }
+            if (additionalJavaOpts != null)
+            {
+                for (String opt : additionalJavaOpts.split("\\s+"))
+                {
                     cmd.add(opt);
                 }
             }
@@ -93,32 +109,44 @@ public class JBossAsManagedContainer extends AbstractDeployableContainer {
             processBuilder.redirectErrorStream(true);
             process = processBuilder.start();
             new Thread(new ConsoleConsumer()).start();
-            long timeout = 5000;
+            long timeout = config.getStartupTimeoutInSeconds() * 1000;
             boolean testRunnerMBeanAvaialble = false;
             MBeanServerConnection mbeanServer = null;
-            while (timeout > 0 && testRunnerMBeanAvaialble == false) {
-                if (mbeanServer == null) {
-                    try {
+            do
+            {
+                Thread.sleep(100);
+                timeout -= 100;
+                if (mbeanServer == null)
+                {
+                    try
+                    {
                         mbeanServer = getMBeanServerConnection();
-                    } catch (Exception ex) {
+                    }
+                    catch (Exception ex)
+                    {
                         // ignore
                     }
                 }
 
-                //testRunnerMBeanAvaialble = (mbeanServer != null && mbeanServer.isRegistered(ObjectNameFactory.create(JMXTestRunnerMBean.OBJECT_NAME)));
-                testRunnerMBeanAvaialble = true;
-                Thread.sleep(100);
-                timeout -= 100;
+                testRunnerMBeanAvaialble = (mbeanServer != null && mbeanServer.isRegistered(OBJECT_NAME));
             }
+            while (timeout > 0 && testRunnerMBeanAvaialble == false);
+
             final Process proc = process;
-            shutdownThread = new Thread(new Runnable() {
-                //@Override
-                public void run() {
-                    if (proc != null) {
+            shutdownThread = new Thread(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    if (proc != null)
+                    {
                         proc.destroy();
-                        try {
+                        try
+                        {
                             proc.waitFor();
-                        } catch (InterruptedException e) {
+                        }
+                        catch (InterruptedException e)
+                        {
                             throw new RuntimeException(e);
                         }
                     }
@@ -126,36 +154,50 @@ public class JBossAsManagedContainer extends AbstractDeployableContainer {
             });
             Runtime.getRuntime().addShutdownHook(shutdownThread);
 
-        } catch (Exception e) {
+            if(!testRunnerMBeanAvaialble)
+            {
+                throw new RuntimeException(
+                        "Process did not start in time, waited for " + config.getStartupTimeoutInSeconds() + " ms. " 
+                        + OBJECT_NAME + " was never registered");
+            }
+        }
+        catch (Exception e)
+        {
             throw new LifecycleException("Could not start container", e);
         }
     }
 
-    //@Override
-    public void stop() throws LifecycleException {
-        if(shutdownThread != null) {
+    @Override
+    public void stop() throws LifecycleException
+    {
+        if (shutdownThread != null)
+        {
             Runtime.getRuntime().removeShutdownHook(shutdownThread);
             shutdownThread = null;
         }
-        try {
-            if (process != null) {
+        try
+        {
+            if (process != null)
+            {
                 process.destroy();
                 process.waitFor();
                 process = null;
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             throw new LifecycleException("Could not stop container", e);
         }
     }
 
-//    @Override
-    protected MBeanServerConnection getMBeanServerConnection() {
+    protected MBeanServerConnection getMBeanServerConnection()
+    {
         return provider.getConnection();
     }
 
-//    protected ProtocolMetaData getProtocolMetaData(String deploymentName) {
-//        return new ProtocolMetaData();
-//    }
+    //    protected ProtocolMetaData getProtocolMetaData(String deploymentName) {
+    //        return new ProtocolMetaData();
+    //    }
 
     /**
      * Runnable that consumes the output of the process. If nothing consumes the output the AS will hang on some platforms
@@ -163,31 +205,28 @@ public class JBossAsManagedContainer extends AbstractDeployableContainer {
      * @author Stuart Douglas
      *
      */
-    private class ConsoleConsumer implements Runnable {
-
-        //@Override
-        public void run() {
+    private class ConsoleConsumer implements Runnable
+    {
+        @Override
+        public void run()
+        {
             final InputStream stream = process.getInputStream();
-            final InputStreamReader reader = new InputStreamReader(stream);
-            final boolean writeOutput = AccessController.doPrivileged(new PrivilegedAction<Boolean>() {
-
-                //@Override
-                public Boolean run() {
-                    // this needs a better name
-                    String val = System.getProperty("org.jboss.as.writeconsole");
-                    return val != null && "true".equals(val);
-                }
-            });
-            final char[] data = new char[100];
-            try {
-                for (int read = 0; read != -1; read = reader.read(data)) {
-                    if (writeOutput) {
-                        System.out.print(data);
+            final BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+            final boolean writeOutput = getContainerConfiguration().isOutputToConsole(); 
+            try
+            {
+                String line;
+                while( (line = reader.readLine()) != null)
+                {
+                    if(writeOutput)
+                    {
+                        System.out.println(line);
                     }
                 }
-            } catch (IOException e) {
+            }
+            catch (IOException e)
+            {
             }
         }
-
     }
 }

@@ -50,13 +50,13 @@ import org.jboss.shrinkwrap.descriptor.api.Descriptor;
  * @author Thomas.Diesler@jboss.com
  * @since 17-Nov-2010
  */
-public abstract class AbstractDeployableContainer implements DeployableContainer<JBossAsContainerConfiguration> {
+public abstract class AbstractDeployableContainer<T extends JBossAsCommonConfiguration> implements DeployableContainer<T> {
 
-    static final ObjectName OBJECT_NAME;
+    protected static final ObjectName OBJECT_NAME;
 
     static {
         try {
-            OBJECT_NAME = new ObjectName("jboss.msc", ObjectProperties.properties(ObjectProperties.property("type", "container"), ObjectProperties.property("name", "jbossas")));
+            OBJECT_NAME = new ObjectName("jboss.msc", ObjectProperties.properties(ObjectProperties.property("type", "container"), ObjectProperties.property("name", "jboss-as")));
         } catch (MalformedObjectNameException e) {
             throw new IllegalStateException(e);
         }
@@ -64,7 +64,7 @@ public abstract class AbstractDeployableContainer implements DeployableContainer
 
     private static final Logger log = Logger.getLogger(AbstractDeployableContainer.class.getName());
 
-    private JBossAsContainerConfiguration containerConfig;
+    private T containerConfig;
     private ServerDeploymentManager deploymentManager;
 
     private final Map<Object, String> registry = new HashMap<Object, String>();
@@ -75,12 +75,7 @@ public abstract class AbstractDeployableContainer implements DeployableContainer
     }
 
     @Override
-    public Class<JBossAsContainerConfiguration> getConfigurationClass() {
-        return JBossAsContainerConfiguration.class;
-    }
-
-    @Override
-    public void setup(JBossAsContainerConfiguration configuration) {
+    public void setup(T configuration) {
         containerConfig = configuration;
         ModelControllerClient client = ModelControllerClient.Factory.create(containerConfig.getBindAddress(),
                 containerConfig.getManagementPort());
@@ -129,7 +124,7 @@ public abstract class AbstractDeployableContainer implements DeployableContainer
         return protocol;
     }
     
-    protected JBossAsContainerConfiguration getContainerConfiguration() {
+    protected T getContainerConfiguration() {
         return containerConfig;
     }
 

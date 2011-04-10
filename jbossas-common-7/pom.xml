@@ -35,7 +35,6 @@
 
 		<!-- Versioning -->
 		<version.org.jboss.jbossas>7.0.0.Beta2</version.org.jboss.jbossas>
-		<version.org.jboss.msc>1.0.0.Beta7</version.org.jboss.msc>
 
 	</properties>
 
