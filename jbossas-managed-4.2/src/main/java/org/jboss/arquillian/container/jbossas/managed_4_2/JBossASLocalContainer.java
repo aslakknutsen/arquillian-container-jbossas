@@ -19,7 +19,6 @@ package org.jboss.arquillian.container.jbossas.managed_4_2;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.Properties;
 
 import javax.enterprise.deploy.shared.StateType;
 import javax.enterprise.deploy.shared.factories.DeploymentFactoryManager;
@@ -29,7 +28,6 @@ import javax.enterprise.deploy.spi.exceptions.DeploymentManagerCreationException
 import javax.enterprise.deploy.spi.status.DeploymentStatus;
 import javax.enterprise.deploy.spi.status.ProgressObject;
 import javax.naming.Context;
-import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
 import org.jboss.arquillian.container.spi.client.container.DeployableContainer;
@@ -150,11 +148,8 @@ public class JBossASLocalContainer implements DeployableContainer<JBossASConfigu
    {
       if (contextInst.get() == null)
       {
-         Properties props = new Properties();
-         props.put(InitialContext.INITIAL_CONTEXT_FACTORY, server.getInitialContextFactoryClassName());
-         props.put(InitialContext.URL_PKG_PREFIXES, configuration.getUrlPkgPrefix());
-         props.put(InitialContext.PROVIDER_URL, server.getServerUrl());
-         contextInst.set(new InitialContext(props));
+         // Reuse the Context created by the Server, this also setup the SecurityAssociation for secured servers
+         contextInst.set(server.getNamingContext());
       }
       return contextInst.get();
    }
@@ -173,11 +168,11 @@ public class JBossASLocalContainer implements DeployableContainer<JBossASConfigu
       }
 
       DeploymentStatus status = progress.getDeploymentStatus();
+      waitForCompletion(status);
       if (status.getState() == StateType.FAILED)
       {
          throw new DeploymentException("Failed to deploy " + deployment.getName() + ": " + status.getMessage());
       }
-      waitForCompletion(status);
 
       // Start the modules whose IDs are returned by the "distribute" operation.:
       TargetModuleID[] moduleIDs = progress.getResultTargetModuleIDs();
@@ -319,8 +314,8 @@ public class JBossASLocalContainer implements DeployableContainer<JBossASConfigu
       server.setHost(configuration.getBindAddress());
       server.setHasWebServer(!configuration.isUseRmiPortForAliveCheck());
 
-      server.setUsername("admin");
-      server.setPassword("admin");
+      server.setUsername(configuration.getUsername());
+      server.setPassword(configuration.getPassword());
       
       if (configuration.getPartition() != null) {
           server.setPartition(configuration.getPartition());

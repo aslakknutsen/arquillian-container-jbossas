@@ -30,7 +30,7 @@
     <properties>
 
         <!-- Versioning -->
-        <version.arquillian_core>1.0.0.CR7</version.arquillian_core>
+        <version.arquillian_core>1.0.1.Final</version.arquillian_core>
 
         <!-- override from parent -->
         <maven.compiler.argument.target>1.5</maven.compiler.argument.target>
@@ -67,21 +67,40 @@
                     <localCheckout>true</localCheckout>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>animal-sniffer-maven-plugin</artifactId>
+                <version>1.7</version>
+                <executions>
+                    <execution>
+                        <id>signature-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <signature>
+                        <groupId>org.codehaus.mojo.signature</groupId>
+                        <artifactId>java15</artifactId>
+                        <version>1.0</version>
+                    </signature>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
     <modules>
         <module>jbossas-managed-4.2</module>
         <module>jbossas-remote-4.2</module>
-
         <module>jbossas-remote-5</module>
-
         <module>jbossas-managed-5.1</module>
         <module>jbossas-remote-5.1</module>
-
         <module>jbossas-embedded-6</module>
         <module>jbossas-managed-6</module>
         <module>jbossas-remote-6</module>
+        <module>jbossas-7.x</module>
     </modules>
 
 </project>

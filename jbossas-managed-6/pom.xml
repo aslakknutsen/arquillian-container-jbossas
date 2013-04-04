@@ -76,8 +76,13 @@
             <version>${version.org.jboss.jbossas}</version>
             <type>pom</type>
             <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <artifactId>istack-commons-runtime</artifactId>
+                    <groupId>com.sun.istack</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
-
 
         <!-- Testing -->
         <dependency>
@@ -99,7 +104,7 @@
         </dependency>
         <dependency>
             <groupId>org.jboss.shrinkwrap.descriptors</groupId>
-            <artifactId>shrinkwrap-descriptors-impl</artifactId>
+            <artifactId>shrinkwrap-descriptors-impl-javaee</artifactId>
             <scope>test</scope>
         </dependency>
 
